@@ -1,9 +1,9 @@
 # Rutas Propuesta Cali · Harinera del Valle
 
 Tablero de las cuatro rutas propuestas para noviembre de 2026 en Cali y Jamundí:
-**HV 10** (panel con espacios para ARA/D1) y las rutas exclusivas **7, 47 y 45** (escenario moderado).
+**HV 10** (panel con espacios para ARA/Dollarcity) y las rutas exclusivas **7, 47 y 45** (escenario moderado).
 
-Muestra cumplimiento de frecuencias, horarios de visita, agenda del mes, tiempo libre para ARA o D1
+Muestra cumplimiento de frecuencias, horarios de visita, agenda del mes, tiempo libre para ARA o Dollarcity
 y un análisis geoespacial (territorio de cada ruta y cercanía entre rutas).
 
 Hecho con React + Vite. Los datos van dentro del proyecto (`src/data/rutas.json`); no necesita base de datos ni claves.
@@ -44,9 +44,12 @@ Abre la dirección que aparece (normalmente http://localhost:5173).
 
 - **Portada** «Rutas propuesta Cali» con el mapa de los 22 puntos de venta en su coordenada real.
 - **Filtros** por ruta y por punto de venta (todo el tablero responde).
-- **Resumen**: cumplimiento de frecuencia, visitas, horas en tienda, tiempo libre para ARA/D1 y ocupación de la jornada.
-- **Mapa** (Esri: mapa claro, calles o satélite): territorio de cada ruta, tamaño del punto según horas de visita,
-  cercanía entre rutas y el recorrido numerado del día elegido.
+- **Resumen**: cumplimiento de frecuencia, visitas, horas en tienda, tiempo libre para ARA/Dollarcity y ocupación de la jornada.
+- **Mapa** (Esri: mapa claro, calles o satélite) con dos vistas:
+  - **Rutas propuestas**: territorio de cada ruta, tamaño del punto según horas de visita, cercanía entre rutas y el recorrido numerado del día elegido.
+  - **Cobertura HDV**: los puntos del panel en verde (cubiertos por Harinera del Valle, programados en octubre 2026) o rojo (sin cobertura),
+    y las tiendas ARA y Dollarcity en naranja. Cada color se puede ocultar; resumen por municipio y cadena al lado.
+- **Detalle del día**: en los días con tiempo libre, las 3 tiendas ARA o Dollarcity más cercanas al último punto.
 - **Calendario de tiempo libre**: minutos libres por ruta y día; clic para ver ese día.
 - **Agenda del mes**: visitas, almuerzo, desplazamientos y espacio libre de cada día, de 8:00 al fin de la jornada.
 - **Cumplimiento por punto de venta**, **tabla de tiempos y horarios** y **hallazgos geoespaciales**.
@@ -64,6 +67,14 @@ routes[] → id, name, color, shape, territory, pdvs[], days[]
   days[] → fecha, serv, travel, km, free, gmaps, stops[], segs[]
   segs[] → tipo (visita | continua | almuerzo | libre), start, end (minutos desde medianoche), code, orden, modo, km, tmin
 vecinos  → pares de puntos de rutas distintas a menos de 1,6 km
+```
+
+La vista de cobertura lee `src/data/cobertura.json`:
+
+```
+resumen  → panel, cub, nocub, ara, dollar, corte
+panel[]  → c (código), n (nombre), cad (cadena), ciu (municipio), cub (1 cubierto / 0 sin cobertura), ruta (rutero), rp (ruta propuesta o null), la, lo
+ara[]    → n (nombre), cad (Ara | Dollarcity), dir, mun, la, lo
 ```
 
 ## Supuestos

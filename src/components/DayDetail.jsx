@@ -1,6 +1,6 @@
-import { ROUTE, PDV, DAYS } from '../lib/data'
+import { ROUTE, PDV, DAYS, nearestAra, COV_COLORS } from '../lib/data'
 import { Shape } from './Shape'
-import { clock, dur, dayLong } from '../lib/format'
+import { clock, dur, dayLong, num } from '../lib/format'
 
 export default function DayDetail({ selDay }) {
   if (!selDay) return <div className="empty">Elige un día en el calendario o en la agenda para ver su recorrido.</div>
@@ -8,6 +8,8 @@ export default function DayDetail({ selDay }) {
   const d = r.days.find((x) => x.fecha === selDay.fecha)
   const dd = DAYS.find((x) => x.fecha === d.fecha)
   const used = d.serv + d.travel
+  const last = PDV[d.stops[d.stops.length - 1]]
+  const near = d.free ? nearestAra({ lat: last.lat, lon: last.lon }, 3) : []
   return (
     <div>
       <div className="day-head">
@@ -46,15 +48,26 @@ export default function DayDetail({ selDay }) {
           return (
             <li key={i}>
               <span className="time">{clock(s.start)}</span><span className="dot free">+</span>
-              <div className="body"><b style={{ color: '#1c5cab' }}>Espacio libre · ARA o D1 alterno</b><small>{clock(s.start)}–{clock(s.end)} · {dur(s.end - s.start)}</small></div>
+              <div className="body"><b style={{ color: '#1c5cab' }}>Espacio libre · ARA o Dollarcity alterno</b><small>{clock(s.start)}–{clock(s.end)} · {dur(s.end - s.start)}</small></div>
             </li>
           )
         })}
         <li>
           <span className="time">{clock(dd.endwin)}</span><span className="dot" style={{ background: '#eef2fb', color: '#56617d' }}>■</span>
-          <div className="body"><b>Fin de jornada</b><small>{d.free ? `${dur(d.free)} libres para ARA o D1` : 'Sin espacio libre de 30 min o más'}</small></div>
+          <div className="body"><b>Fin de jornada</b><small>{d.free ? `${dur(d.free)} libres para ARA o Dollarcity` : 'Sin espacio libre de 30 min o más'}</small></div>
         </li>
       </ol>
+      {near.length > 0 && (
+        <div className="near-ara">
+          <b>ARA y Dollarcity más cerca del último punto</b>
+          <div style={{ color: '#56617d', fontSize: '.8rem' }}>Desde {last.name}, en línea recta</div>
+          <ul>
+            {near.map((s) => (
+              <li key={s.n}><i className="dot" style={{ background: COV_COLORS.ara }} />{s.n}<small>{s.km < 1 ? `${num(s.km * 1000, 0)} m` : `${num(s.km, 1)} km`}</small></li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

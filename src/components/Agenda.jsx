@@ -87,7 +87,7 @@ export default function Agenda({ routeId, pdvSel, selDay, onSelect }) {
                 } else if (s.tipo === 'libre') {
                   const m = s.end - s.start
                   els.push(
-                    <g key={i} onMouseMove={(e) => tip.show(e, <div><b>Espacio libre · ARA o D1</b><div>{clock(s.start)}–{clock(s.end)} · {dur(m)}</div></div>)} onMouseLeave={tip.hide}>
+                    <g key={i} onMouseMove={(e) => tip.show(e, <div><b>Espacio libre · ARA o Dollarcity</b><div>{clock(s.start)}–{clock(s.end)} · {dur(m)}</div></div>)} onMouseLeave={tip.hide}>
                       <rect x={x(s.start) + 1} y={cy} width={w} height={BAR} rx="4" fill={`url(#${pid})`} />
                       {w > 74 && (
                         <g>

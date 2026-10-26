@@ -69,7 +69,7 @@ export default function Cover({ onEnter }) {
           <h1><span>Rutas</span><span>propuesta</span><span className="soft">Cali</span></h1>
           <p className="cover-lead">
             Cuatro rutas de mercadeo para Harinera del Valle en Cali y Jamundí: cumplimiento de frecuencias,
-            horarios de visita y tiempo libre para atender ARA y D1 alternos al panel.
+            horarios de visita, tiempo libre para atender ARA y Dollarcity alternos al panel y la cobertura del panel HDV.
           </p>
           <div className="cover-stats">
             <div><b>{ROUTES.length}</b><span>Rutas</span></div>

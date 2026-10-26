@@ -1,4 +1,4 @@
-import { ROUTE, ROUTES, PDV, VECINOS, routeMetrics } from '../lib/data'
+import { ROUTE, ROUTES, PDV, VECINOS, routeMetrics, COV, distKm } from '../lib/data'
 import { Shape } from './Shape'
 import { dur, hours, num, pct } from '../lib/format'
 
@@ -21,6 +21,14 @@ export default function Findings() {
   const can = r7.pdvs.find((p) => p.code === 149545), mz = r7.pdvs.find((p) => p.code === 128808)
   const tCM = travelMin(can, mz)
   const hv = ROUTE.hv10
+  const R = COV.resumen
+  const caliNo = COV.panel.filter((p) => p.ciu === 'Cali' && !p.cub).length
+  const chainNo = new Map()
+  COV.panel.filter((p) => !p.cub).forEach((p) => chainNo.set(p.cad, (chainNo.get(p.cad) || 0) + 1))
+  const topChains = [...chainNo.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
+  const nearRoute = (r, s) => r.pdvs.some((p) => distKm({ lat: s.la, lon: s.lo }, p) <= 1)
+  const araNear = COV.ara.filter((s) => ROUTES.some((r) => nearRoute(r, s)))
+  const araByRoute = ROUTES.map((r) => [r, COV.ara.filter((s) => nearRoute(r, s)).length]).sort((a, b) => b[1] - a[1])
   const cards = [
     {
       k: `${num(v1.km * 1000)} m`, t: 'Dos rutas exclusivas atienden puntos vecinos',
@@ -34,7 +42,7 @@ export default function Findings() {
     },
     {
       k: `${hours(ms[busiest.id].free, 0)} h`, t: `${busiest.name} es la ruta con más capacidad libre`,
-      p: `Usa el ${pct(ms[busiest.id].used / ms[busiest.id].cap)} de su jornada. Los días de ${busiest.pdvs.slice().sort((a, b) => a.min - b.min)[0].name} (${dur(busiest.pdvs.slice().sort((a, b) => a.min - b.min)[0].min)}) dejan más de la mitad de la jornada libre para ARA o D1.`,
+      p: `Usa el ${pct(ms[busiest.id].used / ms[busiest.id].cap)} de su jornada. Los días de ${busiest.pdvs.slice().sort((a, b) => a.min - b.min)[0].name} (${dur(busiest.pdvs.slice().sort((a, b) => a.min - b.min)[0].min)}) dejan más de la mitad de la jornada libre para ARA o Dollarcity.`,
       tags: [busiest],
     },
     {
@@ -49,8 +57,18 @@ export default function Findings() {
     },
     {
       k: `${hours(totalFree, 0)} h`, t: 'Tiempo libre de las cuatro rutas en noviembre',
-      p: `Equivale a unas ${num(totalFree / 400)} jornadas de lunes a jueves. Se ubica al final del día, cerca del último punto, para visitar ARA o D1 alternos al panel sin mover visitas.`,
+      p: `Equivale a unas ${num(totalFree / 400)} jornadas de lunes a jueves. Se ubica al final del día, cerca del último punto, para visitar ARA o Dollarcity alternos al panel sin mover visitas.`,
       tags: ROUTES,
+    },
+    {
+      k: pct(R.cub / R.panel), t: 'Cobertura del panel Harinera del Valle',
+      p: `${num(R.cub)} de ${num(R.panel)} puntos del panel están programados en ${R.corte.toLowerCase()}. Quedan ${num(R.nocub)} sin cobertura, ${caliNo} de ellos en Cali. Las cadenas con más puntos sin cobertura son ${topChains.map(([c, n]) => `${c} (${n})`).join(', ')}.`,
+      tags: [],
+    },
+    {
+      k: `${araNear.length} tiendas`, t: 'ARA y Dollarcity a menos de 1 km de las rutas',
+      p: `De las ${R.ara + R.dollar} tiendas ARA y Dollarcity de Cali y Jamundí, ${araNear.length} quedan a menos de 1 km de un punto de las rutas propuestas: sirven para usar el tiempo libre sin desviarse. ${araByRoute[0][0].name} es la que tiene más cerca (${araByRoute[0][1]}).`,
+      tags: araByRoute.filter(([, n]) => n > 0).map(([r]) => r),
     },
   ]
   return (

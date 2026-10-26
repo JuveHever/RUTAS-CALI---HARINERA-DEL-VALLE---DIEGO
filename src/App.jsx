@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ROUTES, ROUTE, META, metrics } from './lib/data'
+import { ROUTES, ROUTE, META, metrics, COV, COV_COLORS } from './lib/data'
 import { dayLabel } from './lib/format'
 import { TooltipProvider } from './components/Tooltip'
 import Cover from './components/Cover'
@@ -13,6 +13,7 @@ import DayDetail from './components/DayDetail'
 import PdvCompliance from './components/PdvCompliance'
 import PdvTable from './components/PdvTable'
 import Findings from './components/Findings'
+import CoverageCard from './components/CoverageCard'
 import { Shape } from './components/Shape'
 
 const ALL = ROUTES.map((r) => r.id)
@@ -41,6 +42,9 @@ export default function App() {
   const [mapDay, setMapDay] = useState(null)
   const [agendaRoute, setAgendaRoute] = useState('hv10')
   const [showNear, setShowNear] = useState(true)
+  const [mapMode, setMapMode] = useState('rutas')
+  const [cov, setCov] = useState({ cub: true, nocub: true, ara: true })
+  const [extent, setExtent] = useState('cali')
 
   useEffect(() => {
     if (!routesSel.includes(agendaRoute)) setAgendaRoute(routesSel[0])
@@ -51,7 +55,13 @@ export default function App() {
   useEffect(() => { window.scrollTo(0, 0) }, [view])
 
   const m = useMemo(() => metrics(routesSel, pdvSel), [routesSel, pdvSel])
-  const pick = (d) => { setSelDay(d); setMapDay(d); setAgendaRoute(d.route) }
+  const pick = (d) => { setSelDay(d); setMapDay(d); setAgendaRoute(d.route); setMapMode('rutas') }
+  const R = COV.resumen
+  const covChips = [
+    ['cub', 'Cubiertos HDV', R.cub],
+    ['nocub', 'Sin cobertura HDV', R.nocub],
+    ['ara', 'ARA y Dollarcity', R.ara + R.dollar],
+  ]
 
   if (view === 'cover') return <Cover onEnter={() => setView('dash')} />
 
@@ -60,7 +70,7 @@ export default function App() {
       <Header routesSel={routesSel} setRoutesSel={setRoutesSel} pdvSel={pdvSel} setPdvSel={setPdvSel} onHome={() => setView('cover')} />
       <main className="page">
         <Section id="resumen" eyebrow="Noviembre 2026 · 23 días hábiles" title="Resumen de las rutas propuestas"
-          desc="Cumplimiento de las frecuencias del escenario, horas en tienda y tiempo que queda libre para visitar ARA o D1 alternos al panel. Los indicadores responden a los filtros de ruta y punto de venta.">
+          desc="Cumplimiento de las frecuencias del escenario, horas en tienda y tiempo que queda libre para visitar ARA o Dollarcity alternos al panel. Los indicadores responden a los filtros de ruta y punto de venta.">
           <Kpis m={m} />
         </Section>
 
@@ -69,11 +79,29 @@ export default function App() {
             <div className="section-head">
               <div>
                 <div className="eyebrow">Análisis geoespacial</div>
-                <h2>Mapa de rutas</h2>
-                <p>Cada punto es un punto de venta en su coordenada real y el área punteada es el territorio de la ruta. Con la cercanía activa, las líneas unen puntos de rutas distintas a menos de 1,6 km; acerca el mapa para ver la distancia.</p>
+                <h2>{mapMode === 'cobertura' ? 'Cobertura del panel Harinera del Valle' : 'Mapa de rutas'}</h2>
+                <p>{mapMode === 'cobertura'
+                  ? `Los ${R.panel} puntos de venta del panel HDV y las tiendas ARA y Dollarcity de Cali y Jamundí. Verde: con cobertura de Harinera del Valle (programados en ${R.corte.toLowerCase()}); rojo: sin cobertura; naranja: ARA y Dollarcity. Clic en un color para mostrarlo u ocultarlo.`
+                  : 'Cada punto es un punto de venta en su coordenada real y el área punteada es el territorio de la ruta. Con la cercanía activa, las líneas unen puntos de rutas distintas a menos de 1,6 km; acerca el mapa para ver la distancia.'}</p>
               </div>
               <div className="map-tools">
-                {mapDay ? (
+                <div className="seg" role="group" aria-label="Vista del mapa">
+                  <button aria-pressed={mapMode === 'rutas'} onClick={() => setMapMode('rutas')}>Rutas propuestas</button>
+                  <button aria-pressed={mapMode === 'cobertura'} onClick={() => setMapMode('cobertura')}>Cobertura HDV</button>
+                </div>
+                {mapMode === 'cobertura' ? (
+                  <>
+                    {covChips.map(([k, t, n]) => (
+                      <button key={k} className="chip cov" aria-pressed={cov[k]} onClick={() => setCov((c) => ({ ...c, [k]: !c[k] }))}>
+                        <i className="dot" style={{ background: COV_COLORS[k] }} />{t} · {n}
+                      </button>
+                    ))}
+                    <div className="seg" role="group" aria-label="Zona del mapa">
+                      <button aria-pressed={extent === 'cali'} onClick={() => setExtent('cali')}>Cali y alrededores</button>
+                      <button aria-pressed={extent === 'todo'} onClick={() => setExtent('todo')}>Toda la regional</button>
+                    </div>
+                  </>
+                ) : mapDay ? (
                   <button className="chip" aria-pressed="true" onClick={() => setMapDay(null)} title="Volver a la vista del mes">
                     <Shape shape={ROUTE[mapDay.route].shape} color={ROUTE[mapDay.route].color} size={10} />
                     Recorrido {ROUTE[mapDay.route].name} · {dayLabel(mapDay.fecha)} <span aria-hidden="true">✕</span>
@@ -83,24 +111,30 @@ export default function App() {
                 )}
               </div>
             </div>
-            <RouteMap routesSel={routesSel} pdvSel={pdvSel} selDay={mapDay} showNear={showNear} />
+            <RouteMap routesSel={routesSel} pdvSel={pdvSel} selDay={mapDay} showNear={showNear} mode={mapMode} cov={cov} extent={extent} />
           </div>
-          <div className="card span-4">
-            <div className="section-head">
-              <div>
-                <div className="eyebrow">Cumplimiento</div>
-                <h2>Por ruta</h2>
-                <p>Visitas programadas frente a las del escenario. Clic en una ruta para verla sola.</p>
-              </div>
+          {mapMode === 'cobertura' ? (
+            <div className="card span-4">
+              <CoverageCard />
             </div>
-            <RouteCards routesSel={routesSel} onSolo={(id) => setRoutesSel([id])} />
-          </div>
+          ) : (
+            <div className="card span-4">
+              <div className="section-head">
+                <div>
+                  <div className="eyebrow">Cumplimiento</div>
+                  <h2>Por ruta</h2>
+                  <p>Visitas programadas frente a las del escenario. Clic en una ruta para verla sola.</p>
+                </div>
+              </div>
+              <RouteCards routesSel={routesSel} onSolo={(id) => setRoutesSel([id])} />
+            </div>
+          )}
         </div>
 
         <div className="card" id="calendario" style={{ scrollMarginTop: 130 }}>
           <div className="section-head">
             <div>
-              <div className="eyebrow">Tiempo libre para ARA o D1</div>
+              <div className="eyebrow">Tiempo libre para ARA o Dollarcity</div>
               <h2>Calendario de noviembre</h2>
               <p>Minutos que quedan libres en cada jornada después del panel. Clic en un día para ver su agenda y su recorrido en el mapa.</p>
             </div>
@@ -127,7 +161,7 @@ export default function App() {
             <div className="legend-row" style={{ marginBottom: 10 }}>
               <span><i className="sw" style={{ background: ROUTE[agendaRoute].color }} />Visita</span>
               <span><i className="sw" style={{ background: '#d5dbe7' }} />Almuerzo</span>
-              <span><i className="sw" style={{ background: 'repeating-linear-gradient(45deg,#3987e5 0 2px,#e6effc 2px 5px)' }} />Espacio libre ARA/D1</span>
+              <span><i className="sw" style={{ background: 'repeating-linear-gradient(45deg,#3987e5 0 2px,#e6effc 2px 5px)' }} />Espacio libre ARA/Dollarcity</span>
               <span><i className="sw" style={{ background: 'none', borderTop: '2px dotted #8a93ab', height: 0, borderRadius: 0 }} />Desplazamiento</span>
               <span><i className="sw" style={{ width: 2, background: '#8a93ab' }} />Fin de jornada</span>
             </div>

@@ -42,7 +42,7 @@ export default function RouteCards({ routesSel, onSolo }) {
               {m.faltan > 0 ? <span className="flag">▲ {m.faltan} no caben</span> : <span>Todas caben</span>}
             </div>
             <div className="rcard-row">
-              <span>Libre ARA/D1 <b>{hours(m.free)} h</b> · {m.freeDays} días</span>
+              <span>Libre ARA/Dollarcity <b>{hours(m.free)} h</b> · {m.freeDays} días</span>
               <span>Ocupación <b>{pct(m.used / m.cap)}</b></span>
             </div>
             <div className="rcard-row">

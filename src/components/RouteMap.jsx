@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
-import { ROUTES, ROUTE, PDV, VECINOS, pdvSchedule } from '../lib/data'
+import { ROUTES, ROUTE, PDV, VECINOS, pdvSchedule, COV, COV_COLORS } from '../lib/data'
 import { shapeSvg, Shape } from './Shape'
 import { dur, num, dayLong } from '../lib/format'
 
@@ -9,7 +9,16 @@ const esri = (svc, attr, opts = {}) =>
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
 
-export default function RouteMap({ routesSel, pdvSel, selDay, showNear }) {
+/* Extensiones de la vista de cobertura */
+const CALI_BOX = [[3.225, -76.585], [3.545, -76.445]] // Cali, Jamundí y la entrada a Yumbo
+const covBounds = (extent) => {
+  if (extent !== 'todo') return L.latLngBounds(CALI_BOX)
+  const pts = COV.panel.map((p) => [p.la, p.lo])
+  COV.ara.forEach((s) => pts.push([s.la, s.lo]))
+  return L.latLngBounds(pts)
+}
+
+export default function RouteMap({ routesSel, pdvSel, selDay, showNear, mode = 'rutas', cov = { cub: true, nocub: true, ara: true }, extent = 'cali' }) {
   const el = useRef(null)
   const st = useRef({})
 
@@ -28,7 +37,10 @@ export default function RouteMap({ routesSel, pdvSel, selDay, showNear }) {
     map.on('zoomend', zc)
     map.on('click', () => map.scrollWheelZoom.enable())
     map.on('mouseout', () => map.scrollWheelZoom.disable())
-    st.current = { map, terr: L.layerGroup().addTo(map), near: L.layerGroup().addTo(map), path: L.layerGroup().addTo(map), pts: L.layerGroup().addTo(map), fit: null }
+    st.current = {
+      map, terr: L.layerGroup().addTo(map), near: L.layerGroup().addTo(map), path: L.layerGroup().addTo(map),
+      pts: L.layerGroup().addTo(map), cov: L.layerGroup().addTo(map), canvas: L.canvas({ padding: 0.3 }), fit: null,
+    }
     const ro = new ResizeObserver(() => {
       map.invalidateSize()
       const f = st.current.fit
@@ -39,16 +51,47 @@ export default function RouteMap({ routesSel, pdvSel, selDay, showNear }) {
   }, [])
 
   useEffect(() => {
-    const { map, terr, near, path, pts } = st.current
+    const { map, terr, near, path, pts, cov: gCov, canvas } = st.current
     if (!map) return
-    terr.clearLayers(); near.clearLayers(); path.clearLayers(); pts.clearLayers()
+    terr.clearLayers(); near.clearLayers(); path.clearLayers(); pts.clearLayers(); gCov.clearLayers()
+
+    if (mode === 'cobertura') {
+      // Un color por categoría: verde cubierto, rojo sin cobertura, naranja ARA / Dollarcity
+      const dot = (lat, lon, color, r) => L.circleMarker([lat, lon], { renderer: canvas, radius: r, color: '#fff', weight: 1.2, fillColor: color, fillOpacity: 0.95 })
+      const order = [...COV.panel].sort((a, b) => a.cub - b.cub) // rojos debajo, verdes encima
+      order.forEach((p) => {
+        if (p.cub ? !cov.cub : !cov.nocub) return
+        const m = dot(p.la, p.lo, p.cub ? COV_COLORS.cub : COV_COLORS.nocub, 6)
+        const ruta = p.rp ? `<br><span style="color:#56617d">Está en la ruta propuesta ${esc(ROUTE[p.rp].name)}</span>` : ''
+        m.bindTooltip(
+          `<b>${esc(p.n)}</b><br><span style="color:#56617d">${esc(p.cad)} · ${esc(p.ciu)} · cód. ${p.c}</span><br>` +
+          (p.cub
+            ? `<b style="color:${COV_COLORS.cub}">Cubierto por Harinera del Valle</b> · programado en ${esc(COV.resumen.corte.toLowerCase())}${p.ruta ? ` (${esc(p.ruta)})` : ''}`
+            : `<b style="color:${COV_COLORS.nocub}">Sin cobertura de Harinera del Valle</b> · no programado en ${esc(COV.resumen.corte.toLowerCase())}`) + ruta,
+          { className: 'tt', direction: 'top', offset: [0, -6] }
+        )
+        m.addTo(gCov)
+      })
+      if (cov.ara) {
+        COV.ara.forEach((s) => {
+          const m = dot(s.la, s.lo, COV_COLORS.ara, 5.5)
+          m.bindTooltip(`<b>${esc(s.n)}</b><br><span style="color:#56617d">${esc(s.cad)} · ${esc(s.dir)} · ${esc(s.mun)}</span>`, { className: 'tt', direction: 'top', offset: [0, -6] })
+          m.addTo(gCov)
+        })
+      }
+      st.current.fit = { b: covBounds(extent).pad(extent === "todo" ? 0.04 : 0), o: { maxZoom: 15 } }
+      map.fitBounds(st.current.fit.b, { ...st.current.fit.o, animate: true })
+      el.current.classList.toggle('z-low', map.getZoom() < 14)
+      return
+    }
+
     const rs = ROUTES.filter((r) => routesSel.includes(r.id))
     const day = selDay && routesSel.includes(selDay.route) ? ROUTE[selDay.route].days.find((d) => d.fecha === selDay.fecha) : null
     const dayCodes = day ? day.stops : null
     const maxH = Math.max(...ROUTES.flatMap((r) => r.pdvs.map((p) => p.prog * p.min)))
 
     rs.forEach((r) => {
-      L.polygon(r.territory, { color: r.color, weight: 1.5, opacity: day && day && selDay.route !== r.id ? 0.25 : 0.7, fillColor: r.color, fillOpacity: day ? 0.04 : 0.08, dashArray: '5 5', interactive: false }).addTo(terr)
+      L.polygon(r.territory, { color: r.color, weight: 1.5, opacity: day && selDay.route !== r.id ? 0.25 : 0.7, fillColor: r.color, fillOpacity: day ? 0.04 : 0.08, dashArray: '5 5', interactive: false }).addTo(terr)
     })
 
     if (showNear && !day) {
@@ -76,7 +119,7 @@ export default function RouteMap({ routesSel, pdvSel, selDay, showNear }) {
         { className: 'tt', direction: 'top', offset: [0, -size / 2] }
       )
       m.addTo(pts)
-      if (sel && (!day)) bounds.push([p.lat, p.lon])
+      if (sel && !day) bounds.push([p.lat, p.lon])
     }))
 
     if (day) {
@@ -100,17 +143,27 @@ export default function RouteMap({ routesSel, pdvSel, selDay, showNear }) {
       map.fitBounds(st.current.fit.b, { ...st.current.fit.o, animate: true })
     }
     el.current.classList.toggle('z-low', map.getZoom() < 14)
-  }, [routesSel, pdvSel, selDay, showNear])
+  }, [routesSel, pdvSel, selDay, showNear, mode, cov.cub, cov.nocub, cov.ara, extent])
 
+  const R = COV.resumen
   return (
     <div className="map-wrap">
-      <div ref={el} className="map" role="region" aria-label="Mapa de rutas y puntos de venta" />
-      <div className="map-legend">
-        {ROUTES.filter((r) => routesSel.includes(r.id)).map((r) => (
-          <span key={r.id}><Shape shape={r.shape} color={r.color} size={11} />{r.name} · {r.pdvs.length} PDV</span>
-        ))}
-        <span style={{ color: '#8a93ab' }}>Tamaño: horas de visita en el mes</span>
-      </div>
+      <div ref={el} className="map" role="region" aria-label={mode === 'cobertura' ? 'Mapa de cobertura del panel de Harinera del Valle' : 'Mapa de rutas y puntos de venta'} />
+      {mode === 'cobertura' ? (
+        <div className="map-legend cov-leg">
+          <span><i className="dot" style={{ background: COV_COLORS.cub, opacity: cov.cub ? 1 : 0.3 }} />Cubiertos por Harinera del Valle · {R.cub}</span>
+          <span><i className="dot" style={{ background: COV_COLORS.nocub, opacity: cov.nocub ? 1 : 0.3 }} />Sin cobertura de Harinera del Valle · {R.nocub}</span>
+          <span><i className="dot" style={{ background: COV_COLORS.ara, opacity: cov.ara ? 1 : 0.3 }} />ARA y Dollarcity · {R.ara + R.dollar}</span>
+          <span style={{ color: '#8a93ab' }}>Panel HDV · {R.corte.toLowerCase()}</span>
+        </div>
+      ) : (
+        <div className="map-legend">
+          {ROUTES.filter((r) => routesSel.includes(r.id)).map((r) => (
+            <span key={r.id}><Shape shape={r.shape} color={r.color} size={11} />{r.name} · {r.pdvs.length} PDV</span>
+          ))}
+          <span style={{ color: '#8a93ab' }}>Tamaño: horas de visita en el mes</span>
+        </div>
+      )}
     </div>
   )
 }

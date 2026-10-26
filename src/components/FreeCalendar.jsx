@@ -55,7 +55,7 @@ export default function FreeCalendar({ routesSel, pdvSel, selDay, onSelect }) {
                       <b>{r.name} · {dayLong(d.fecha)}</b>
                       <div>{visits.map((v) => PDV[v.code].short).join(' → ')}</div>
                       <div className="muted">Panel {dur(d.serv)} · desplazamiento {d.travel} min · {Math.round(((d.serv + d.travel) / dd.cap) * 100)}% de la jornada</div>
-                      <div>{d.free ? <>Libre para ARA/D1: <b>{dur(d.free)}</b> ({frees.map((f) => `${clock(f.start)}–${clock(f.end)}`).join(', ')})</> : 'Sin espacio libre de 30 min o más'}</div>
+                      <div>{d.free ? <>Libre para ARA/Dollarcity: <b>{dur(d.free)}</b> ({frees.map((f) => `${clock(f.start)}–${clock(f.end)}`).join(', ')})</> : 'Sin espacio libre de 30 min o más'}</div>
                       <div className="muted">Clic para ver la agenda del día</div>
                     </div>
                   )

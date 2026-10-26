@@ -1,3 +1,4 @@
+import cov from '../data/cobertura.json'
 import raw from '../data/rutas.json'
 import { weekday, DIAS, clock } from './format'
 
@@ -77,4 +78,25 @@ export function metrics(routeIds, pdvSet) {
 export function routeMetrics(r) {
   const m = metrics([r.id], new Set())
   return { ...m, faltan: m.obj - m.prog }
+}
+
+/* ---------- Cobertura del panel HDV y tiendas ARA / Dollarcity ---------- */
+export const COV = cov
+
+export const COV_COLORS = { cub: '#1e8e4e', nocub: '#d63a2f', ara: '#f08c00' }
+export const COV_LABELS = { cub: 'Cubierto por Harinera del Valle', nocub: 'Sin cobertura de Harinera del Valle', ara: 'ARA y Dollarcity' }
+
+export function distKm(a, b) {
+  const R = 6371, t = Math.PI / 180
+  const dp = (b.lat - a.lat) * t, dl = (b.lon - a.lon) * t
+  const h = Math.sin(dp / 2) ** 2 + Math.cos(a.lat * t) * Math.cos(b.lat * t) * Math.sin(dl / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(h))
+}
+
+/** Tiendas ARA / Dollarcity más cercanas a un punto (línea recta). */
+export function nearestAra(p, n = 3) {
+  return COV.ara
+    .map((s) => ({ ...s, km: distKm(p, { lat: s.la, lon: s.lo }) }))
+    .sort((a, b) => a.km - b.km)
+    .slice(0, n)
 }

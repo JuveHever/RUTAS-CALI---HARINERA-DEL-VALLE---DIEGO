@@ -20,7 +20,7 @@ export default function Kpis({ m }) {
         <span className="kpi-sub">{hours(m.travel)} h de desplazamiento · {num(m.km)} km</span>
       </div>
       <div className="kpi">
-        <span className="kpi-label">Tiempo libre para ARA/D1</span>
+        <span className="kpi-label">Tiempo libre para ARA/Dollarcity</span>
         <span className="kpi-value">{hours(m.free)} h</span>
         <span className="kpi-sub">en {m.freeDays} días-ruta con 30 min o más</span>
       </div>

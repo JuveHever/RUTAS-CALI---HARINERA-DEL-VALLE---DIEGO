@@ -168,6 +168,14 @@ h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; letter-
   border-radius: 10px; padding: 10px 12px; font-size: .8rem; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow)
 }
 .map-legend span { display: inline-flex; align-items: center; gap: 8px }
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 0 .5px rgba(15, 27, 61, .35); flex: none }
+.chip.cov { gap: 7px; padding-top: 5px; padding-bottom: 5px; font-size: .82rem }
+.chip.cov[aria-pressed='false'] { color: var(--faint); background: var(--surface) }
+.chip.cov[aria-pressed='false'] .dot { opacity: .3 }
+.near-ara { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; font-size: .84rem }
+.near-ara ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px }
+.near-ara li { display: flex; align-items: center; gap: 8px }
+.near-ara li small { color: var(--muted); margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums }
 .map-tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
 .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px; background: var(--surface) }
 .seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 999px; cursor: pointer; font: 500 .82rem var(--display); color: var(--muted) }
@@ -283,3 +291,23 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .86rem; min-width
 .tip .muted { color: rgba(255, 255, 255, .72) }
 @media (max-width: 800px) { .topbar { position: static } .nav { display: none } .map-wrap { min-height: 420px } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+
+/* Cobertura del panel HDV */
+.covcard { display: flex; flex-direction: column; gap: 14px }
+.covcard h2 { margin-top: -10px }
+.cov-hero { display: flex; flex-direction: column; gap: 4px }
+.cov-hero .kpi-sub { font-size: .84rem; color: var(--muted) }
+.cov-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--tint); margin-top: 6px }
+.cov-bar i { display: block; height: 100% }
+.cov-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: .86rem }
+.cov-legend li { display: flex; align-items: center; gap: 9px }
+.cov-legend li b { margin-left: auto; font: 600 .95rem var(--display); font-variant-numeric: tabular-nums }
+.cov-legend li.sub { color: var(--muted); font-size: .8rem; padding-left: 21px; margin-top: -4px }
+.cov-tbl { width: 100%; border-collapse: collapse; font-size: .82rem }
+.cov-tbl th { text-align: left; font: 600 .68rem var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 6px 4px; border-bottom: 1px solid var(--line-strong) }
+.cov-tbl td { padding: 6px 4px; border-bottom: 1px solid var(--line) }
+.cov-tbl .num { text-align: right; font-variant-numeric: tabular-nums }
+.cov-chains { font-size: .8rem; color: var(--muted); display: flex; flex-direction: column; gap: 3px }
+.cov-chains b { color: var(--hv-ink); font: 600 .78rem var(--display) }
+
+@media (max-width: 800px) { .map-legend.cov-leg { display: none } }
