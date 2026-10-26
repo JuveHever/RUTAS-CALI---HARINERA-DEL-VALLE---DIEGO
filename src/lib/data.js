@@ -100,3 +100,24 @@ export function nearestAra(p, n = 3) {
     .sort((a, b) => a.km - b.km)
     .slice(0, n)
 }
+
+/**
+ * PDV del panel y tiendas ARA / Dollarcity a menos de `radiusKm` de algún punto de las rutas elegidas.
+ * Cada uno queda asociado al punto de ruta más cercano. Excluye los PDV que ya son de esas rutas.
+ */
+export function nearRoutes(routeIds, pdvSel, radiusKm) {
+  const stops = ROUTES.filter((r) => routeIds.includes(r.id))
+    .flatMap((r) => r.pdvs.filter((p) => !pdvSel.size || pdvSel.has(p.code)).map((p) => ({ r, p })))
+  const out = []
+  const scan = (kind, key, item, lat, lon) => {
+    let best = null
+    for (const s of stops) {
+      const km = distKm({ lat, lon }, s.p)
+      if (!best || km < best.km) best = { km, r: s.r, p: s.p }
+    }
+    if (best && best.km <= radiusKm) out.push({ kind, key, item, la: lat, lo: lon, km: best.km, route: best.r, pdv: best.p })
+  }
+  COV.panel.forEach((p) => { if (!p.rp || !routeIds.includes(p.rp)) scan(p.cub ? 'cub' : 'nocub', 'p' + p.c, p, p.la, p.lo) })
+  COV.ara.forEach((s, i) => scan('ara', 'a' + i, s, s.la, s.lo))
+  return out.sort((a, b) => a.km - b.km)
+}

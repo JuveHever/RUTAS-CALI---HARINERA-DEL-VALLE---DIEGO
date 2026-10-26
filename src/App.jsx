@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ROUTES, ROUTE, META, metrics, COV, COV_COLORS } from './lib/data'
+import { ROUTES, ROUTE, META, metrics, COV, COV_COLORS, nearRoutes } from './lib/data'
 import { dayLabel } from './lib/format'
 import { TooltipProvider } from './components/Tooltip'
 import Cover from './components/Cover'
@@ -14,6 +14,7 @@ import PdvCompliance from './components/PdvCompliance'
 import PdvTable from './components/PdvTable'
 import Findings from './components/Findings'
 import CoverageCard from './components/CoverageCard'
+import NearCard from './components/NearCard'
 import { Shape } from './components/Shape'
 
 const ALL = ROUTES.map((r) => r.id)
@@ -45,6 +46,8 @@ export default function App() {
   const [mapMode, setMapMode] = useState('rutas')
   const [cov, setCov] = useState({ cub: true, nocub: true, ara: true })
   const [extent, setExtent] = useState('cali')
+  const [radius, setRadius] = useState(1)
+  const [focus, setFocus] = useState(null)
 
   useEffect(() => {
     if (!routesSel.includes(agendaRoute)) setAgendaRoute(routesSel[0])
@@ -57,11 +60,12 @@ export default function App() {
   const m = useMemo(() => metrics(routesSel, pdvSel), [routesSel, pdvSel])
   const pick = (d) => { setSelDay(d); setMapDay(d); setAgendaRoute(d.route); setMapMode('rutas') }
   const R = COV.resumen
-  const covChips = [
-    ['cub', 'Cubiertos HDV', R.cub],
-    ['nocub', 'Sin cobertura HDV', R.nocub],
-    ['ara', 'ARA y Dollarcity', R.ara + R.dollar],
-  ]
+  const near = useMemo(() => nearRoutes(routesSel, pdvSel, radius), [routesSel, pdvSel, radius])
+  const nearN = (k) => near.filter((x) => x.kind === k).length
+  const covChips = mapMode === 'mixta'
+    ? [['cub', 'Cubiertos HDV', nearN('cub')], ['nocub', 'Sin cobertura HDV', nearN('nocub')], ['ara', 'ARA y Dollarcity', nearN('ara')]]
+    : [['cub', 'Cubiertos HDV', R.cub], ['nocub', 'Sin cobertura HDV', R.nocub], ['ara', 'ARA y Dollarcity', R.ara + R.dollar]]
+  const RADII = [[0.5, '500 m'], [1, '1 km'], [2, '2 km']]
 
   if (view === 'cover') return <Cover onEnter={() => setView('dash')} />
 
@@ -79,8 +83,10 @@ export default function App() {
             <div className="section-head">
               <div>
                 <div className="eyebrow">Análisis geoespacial</div>
-                <h2>{mapMode === 'cobertura' ? 'Cobertura del panel Harinera del Valle' : 'Mapa de rutas'}</h2>
-                <p>{mapMode === 'cobertura'
+                <h2>{mapMode === 'cobertura' ? 'Cobertura del panel Harinera del Valle' : mapMode === 'mixta' ? 'Rutas y puntos de venta cercanos' : 'Mapa de rutas'}</h2>
+                <p>{mapMode === 'mixta'
+                  ? `Las rutas propuestas con sus figuras y, alrededor, los puntos de venta a menos de ${RADII.find(([v]) => v === radius)[1]} de cualquier punto de ruta: verde con cobertura de Harinera del Valle, rojo sin cobertura y naranja ARA o Dollarcity. Responde a los filtros de ruta y punto de venta.`
+                  : mapMode === 'cobertura'
                   ? `Los ${R.panel} puntos de venta del panel HDV y las tiendas ARA y Dollarcity de Cali y Jamundí. Verde: con cobertura de Harinera del Valle (programados en ${R.corte.toLowerCase()}); rojo: sin cobertura; naranja: ARA y Dollarcity. Clic en un color para mostrarlo u ocultarlo.`
                   : 'Cada punto es un punto de venta en su coordenada real y el área punteada es el territorio de la ruta. Con la cercanía activa, las líneas unen puntos de rutas distintas a menos de 1,6 km; acerca el mapa para ver la distancia.'}</p>
               </div>
@@ -88,18 +94,25 @@ export default function App() {
                 <div className="seg" role="group" aria-label="Vista del mapa">
                   <button aria-pressed={mapMode === 'rutas'} onClick={() => setMapMode('rutas')}>Rutas propuestas</button>
                   <button aria-pressed={mapMode === 'cobertura'} onClick={() => setMapMode('cobertura')}>Cobertura HDV</button>
+                  <button aria-pressed={mapMode === 'mixta'} onClick={() => setMapMode('mixta')}>Mixta</button>
                 </div>
-                {mapMode === 'cobertura' ? (
+                {mapMode !== 'rutas' ? (
                   <>
                     {covChips.map(([k, t, n]) => (
                       <button key={k} className="chip cov" aria-pressed={cov[k]} onClick={() => setCov((c) => ({ ...c, [k]: !c[k] }))}>
                         <i className="dot" style={{ background: COV_COLORS[k] }} />{t} · {n}
                       </button>
                     ))}
-                    <div className="seg" role="group" aria-label="Zona del mapa">
-                      <button aria-pressed={extent === 'cali'} onClick={() => setExtent('cali')}>Cali y alrededores</button>
-                      <button aria-pressed={extent === 'todo'} onClick={() => setExtent('todo')}>Toda la regional</button>
-                    </div>
+                    {mapMode === 'mixta' ? (
+                      <div className="seg" role="group" aria-label="Distancia a la ruta">
+                        {RADII.map(([v, t]) => <button key={v} aria-pressed={radius === v} onClick={() => setRadius(v)}>A {t}</button>)}
+                      </div>
+                    ) : (
+                      <div className="seg" role="group" aria-label="Zona del mapa">
+                        <button aria-pressed={extent === 'cali'} onClick={() => setExtent('cali')}>Cali y alrededores</button>
+                        <button aria-pressed={extent === 'todo'} onClick={() => setExtent('todo')}>Toda la regional</button>
+                      </div>
+                    )}
                   </>
                 ) : mapDay ? (
                   <button className="chip" aria-pressed="true" onClick={() => setMapDay(null)} title="Volver a la vista del mes">
@@ -111,11 +124,15 @@ export default function App() {
                 )}
               </div>
             </div>
-            <RouteMap routesSel={routesSel} pdvSel={pdvSel} selDay={mapDay} showNear={showNear} mode={mapMode} cov={cov} extent={extent} />
+            <RouteMap routesSel={routesSel} pdvSel={pdvSel} selDay={mapDay} showNear={showNear} mode={mapMode} cov={cov} extent={extent} near={near} radiusKm={radius} focus={focus} />
           </div>
           {mapMode === 'cobertura' ? (
             <div className="card span-4">
               <CoverageCard />
+            </div>
+          ) : mapMode === 'mixta' ? (
+            <div className="card span-4">
+              <NearCard near={near} routesSel={routesSel} radiusKm={radius} cov={cov} onFocus={setFocus} />
             </div>
           ) : (
             <div className="card span-4">

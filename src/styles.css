@@ -311,3 +311,15 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .86rem; min-width
 .cov-chains b { color: var(--hv-ink); font: 600 .78rem var(--display) }
 
 @media (max-width: 800px) { .map-legend.cov-leg { display: none } }
+
+/* Vista mixta: puntos cerca de cada ruta */
+.near-lead { margin: -6px 0 0; color: var(--muted); font-size: .84rem }
+.cov-tbl th .dot { vertical-align: -1px }
+.near-list { display: flex; flex-direction: column; gap: 10px; max-height: 470px; overflow: auto; padding-right: 4px; border-top: 1px solid var(--line); padding-top: 10px }
+.near-head { display: flex; align-items: center; gap: 7px; font: 600 .8rem var(--display); color: var(--hv-ink); position: sticky; top: 0; background: var(--surface); padding: 2px 0 4px; z-index: 1 }
+.near-item { display: grid; grid-template-columns: 14px 1fr auto; gap: 8px; align-items: center; width: 100%; text-align: left; border: 0; background: none; padding: 6px 6px; border-radius: 8px; cursor: pointer }
+.near-item:hover { background: var(--tint) }
+.near-name { min-width: 0; display: flex; flex-direction: column }
+.near-name b { font-weight: 600; font-size: .84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.near-name small { color: var(--muted); font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.near-km { font: 600 .78rem var(--display); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap }

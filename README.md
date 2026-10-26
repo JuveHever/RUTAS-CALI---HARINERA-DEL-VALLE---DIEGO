@@ -49,6 +49,9 @@ Abre la dirección que aparece (normalmente http://localhost:5173).
   - **Rutas propuestas**: territorio de cada ruta, tamaño del punto según horas de visita, cercanía entre rutas y el recorrido numerado del día elegido.
   - **Cobertura HDV**: los puntos del panel en verde (cubiertos por Harinera del Valle, programados en octubre 2026) o rojo (sin cobertura),
     y las tiendas ARA y Dollarcity en naranja. Cada color se puede ocultar; resumen por municipio y cadena al lado.
+  - **Mixta**: las rutas con sus figuras y, en el mismo mapa, los puntos verdes, rojos y naranjas a menos de 500 m, 1 km o 2 km
+    de algún punto de ruta (círculo punteado). Al lado, cuántos quedan cerca de cada ruta y la lista ordenada por distancia;
+    clic en un nombre para ir a ese punto. Responde a los filtros de ruta y punto de venta.
 - **Detalle del día**: en los días con tiempo libre, las 3 tiendas ARA o Dollarcity más cercanas al último punto.
 - **Calendario de tiempo libre**: minutos libres por ruta y día; clic para ver ese día.
 - **Agenda del mes**: visitas, almuerzo, desplazamientos y espacio libre de cada día, de 8:00 al fin de la jornada.
